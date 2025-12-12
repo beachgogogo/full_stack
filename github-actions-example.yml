@@ -1,0 +1,101 @@
+# GitHub Actions 入门示例
+# 这是一个简单的CI工作流，帮助你理解GitHub Actions的基本结构
+
+name: CI入门示例
+
+# 触发条件：当有代码推送到main分支时运行
+on:
+  push:
+    branches: [ main ]
+  # 也可以手动触发
+  workflow_dispatch:
+
+# 工作流中的作业
+jobs:
+  # 第一个作业：代码检查
+  lint-and-test:
+    # 运行环境：GitHub托管的Ubuntu最新版
+    runs-on: ubuntu-latest
+    
+    # 步骤序列
+    steps:
+      # 步骤1：检出代码
+      - name: 检出代码
+        uses: actions/checkout@v4
+      
+      # 步骤2：设置Node.js环境
+      - name: 设置Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      # 步骤3：安装依赖
+      - name: 安装依赖
+        run: npm ci
+      
+      # 步骤4：代码检查
+      - name: 运行ESLint
+        run: npm run lint || echo "Lint检查完成"
+      
+      # 步骤5：运行测试
+      - name: 运行测试
+        run: npm test || echo "测试完成"
+      
+      # 步骤6：上传测试结果（如果有）
+      - name: 上传测试结果
+        if: always()  # 即使测试失败也上传
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            test-results/
+            coverage/
+      
+      # 步骤7：发送通知（示例）
+      - name: 发送Slack通知
+        if: failure()  # 仅在失败时发送
+        run: |
+          echo "构建失败！请检查日志。"
+          # 实际使用时可以集成Slack webhook
+          # curl -X POST -H 'Content-type: application/json' --data '{"text":"构建失败!"}' $SLACK_WEBHOOK_URL
+
+  # 第二个作业：构建
+  build:
+    # 依赖第一个作业
+    needs: lint-and-test
+    # 仅在第一个作业成功时运行
+    if: success()
+    
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+      
+      - name: 设置Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: 安装依赖
+        run: npm ci
+      
+      - name: 构建项目
+        run: npm run build
+      
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: dist/
+
+# 工作流中的环境变量（可以在所有作业中使用）
+env:
+  NODE_ENV: production
+  CI: true
+
+# 并发控制（防止同时运行多个相同的工作流）
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
