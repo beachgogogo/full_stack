@@ -6,34 +6,34 @@ on:
       - master
   pull_request:
     types:
-      - opened
-      - synchronize
+      - opened  # 有分支开启Pull request时，触发工作流自动运行
+      - synchronize # 有新的commit提交时，触发工作流自动运行
 
 jobs:
   test-backend:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout              # 把项目拷贝到虚拟机上
         uses: actions/checkout@v6
-      - name: Set up Python
+      - name: Set up Python         # 安装python
         uses: actions/setup-python@v6
         with:
           python-version: "3.10"
-      - name: Install uv
+      - name: Install uv            # 安装uv
         uses: astral-sh/setup-uv@v7
         with:
           version: "0.4.15"
           enable-cache: true
-      - run: docker compose down -v --remove-orphans
-      - run: docker compose up -d db mailcatcher
-      - name: Migrate DB
+      - run: docker compose down -v --remove-orphans  # 把环境清理干净
+      - run: docker compose up -d db mailcatcher  # 开启mailcatcher容器
+      - name: Migrate DB          # 迁移测试数据
         run: uv run bash scripts/prestart.sh
         working-directory: backend
-      - name: Run tests
+      - name: Run tests         # 运行测试
         run: uv run bash scripts/tests-start.sh "Coverage for ${{ github.sha }}"
         working-directory: backend
-      - run: docker compose down -v --remove-orphans
-      - name: Store coverage files
+      - run: docker compose down -v --remove-orphans  # 清理环境
+      - name: Store coverage files      # 存取覆盖率报告
         uses: actions/upload-artifact@v5
         with:
           name: coverage-html
