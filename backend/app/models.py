@@ -2,6 +2,8 @@ import uuid
 
 from pydantic import EmailStr
 from sqlmodel import Field, Relationship, SQLModel
+from enum import Enum
+from datetime import datetime
 
 
 # Shared properties
@@ -111,3 +113,36 @@ class TokenPayload(SQLModel):
 class NewPassword(SQLModel):
     token: str
     new_password: str = Field(min_length=8, max_length=128)
+
+# ========== Plans ========== #
+class PlanStatus(str, Enum):
+    PENDING = "pending"      # 未完成
+    COMPLETED = "completed"  # 已完成
+    ON_HOLD = "on_hold"      # 搁置
+    OVERDUE = "overdue"      # 超时
+
+class PlanBase(SQLModel):
+    title: str = Field(min_length=1, max_length=255)
+    description: str | None = Field(default=None, max_length=1000)
+    start_time: datetime
+    end_time: datetime
+    status: PlanStatus = Field(default=PlanStatus.PENDING)
+
+class PlanCreate(PlanBase):
+    pass
+
+class PlanUpdate(SQLModel):
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    description: str | None = Field(default=None, max_length=1000)
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+    status: PlanStatus | None = None
+
+class Plan(PlanBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    owner_id: uuid.UUID = Field(
+        foreign_key="user.id", nullable=False, ondelete="CASCADE"
+    )
+    owner: User | None = Relationship(back_populates="plans")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)

@@ -13,16 +13,16 @@ jobs:
   lint-backend:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout          # 将项目复制到虚拟机
         uses: actions/checkout@v6
-      - name: Set up Python
+      - name: Set up Python     # 设置python环境
         uses: actions/setup-python@v6
         with:
           python-version: "3.10"
-      - name: Install uv
+      - name: Install uv      # 安装uv
         uses: astral-sh/setup-uv@v7
         with:
           version: "0.4.15"
           enable-cache: true
-      - run: uv run bash scripts/lint.sh
+      - run: uv run bash scripts/lint.sh    # 执行代码检查
         working-directory: backend

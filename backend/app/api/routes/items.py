@@ -37,6 +37,13 @@ def read_items(
             .limit(limit)
         )
         items = session.exec(statement).all()
+    
+    # 测试CI/CD热重载 - 修改item的描述
+    for item in items:
+        if item.description:
+            item.description = f"{item.description} - 测试修改"
+        else:
+            item.description = "测试修改"
 
     return ItemsPublic(data=items, count=count)
 
